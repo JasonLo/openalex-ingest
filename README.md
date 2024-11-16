@@ -1,6 +1,7 @@
-# openalex-ingest
-==============
+# Openalex Ingest Fork
 
-Code to pull external sources into S3. For more, see https://openalex.org.
+## Purposes / Notes to self
 
-Please send all bug reports and feature requests to support@openalex.org.
+1. Make it more reuseable.
+2. More export target options.
+3. Maybe validation? Need to check [guts](https://github.com/ourresearch/openalex-guts), they probably do it in guts.
