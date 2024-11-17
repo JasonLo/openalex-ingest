@@ -1,3 +1,4 @@
+import argparse
 import io
 import json
 from typing import Any
@@ -6,7 +7,7 @@ from zipfile import ZipFile
 import requests
 
 from openalex_ingest.common import LOGGER
-from openalex_ingest.staging import LocalDumper
+from openalex_ingest.staging import LocalDumper, S3Dumper
 
 
 def get_most_recent_ror_dump_metadata() -> dict[str, Any]:
@@ -40,6 +41,17 @@ def download_and_unzip_ror_data(
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Download and process the most recent ROR data dump."
+    )
+    parser.add_argument(
+        "--dumper",
+        choices=["local", "s3"],
+        default="local",
+        help="Select the dumper to use: 'local' for LocalDumper or 's3' for S3Dumper.",
+    )
+    args = parser.parse_args()
+
     most_recent_file_obj = get_most_recent_ror_dump_metadata()
 
     if most_recent_file_obj is None:
@@ -57,7 +69,7 @@ def main() -> None:
 
     # Download and unzip the ROR data
     try:
-        LOGGER.info(f"downloading and unzipping ROR data from {file_url}")
+        LOGGER.info(f"Downloading and unzipping ROR data from {file_url}")
         ror_data, file_name = download_and_unzip_ror_data(file_url)
     except Exception as e:
         LOGGER.error(
@@ -65,17 +77,14 @@ def main() -> None:
         )
         raise
 
-    if not ror_data:
-        raise RuntimeError(
-            "Failed to download and unzip ROR data! Exiting without doing any updates..."
-        )
+    if args.dumper == "s3":
+        # Dump to S3
+        dumper = S3Dumper("ror-data")
+        dumper.dump(ror_data, f"{file_name}.parquet")
 
-    # Dump to local storage
-    dumper = LocalDumper()
-    if file_name in dumper.list_files():
-        LOGGER.info(f"ROR data with the name {file_name} already exists. Skipping...")
-        return
-    dumper.dump(ror_data, f"{file_name}.parquet")
+    if args.dumper == "local":
+        dumper = LocalDumper()
+        dumper.dump(ror_data, f"{file_name}.parquet")
 
 
 if __name__ == "__main__":

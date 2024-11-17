@@ -14,7 +14,7 @@ load_dotenv()
 class DataDumper(Protocol):
     """Protocol for data dumpers."""
 
-    def dump(self, data: list[dict], file_name: str) -> None: ...
+    def dump(self, data: list[dict], file_name: str, skip_exists: bool) -> None: ...
 
     def list_files(self) -> list[str]: ...
 
@@ -25,10 +25,15 @@ class LocalDumper:
     def __init__(self, path: Path | None = None):
         self.path = path or Path("local_data")
 
-    def dump(self, data: list[dict], file_name: str) -> None:
+    def dump(self, data: list[dict], file_name: str, skip_exists: bool = True) -> None:
         """Dump data to local storage."""
-        pd.DataFrame(data).to_parquet(self.path / f"{file_name}.parquet")
-        LOGGER.info(f"Data dumped to {self.path / file_name}.parquet")
+
+        if skip_exists and (self.path / file_name).exists():
+            LOGGER.info(f"File {self.path / file_name} already exists. Skipping...")
+            return
+
+        pd.DataFrame(data).to_parquet(self.path / f"{file_name}")
+        LOGGER.info(f"Data dumped to {self.path / file_name}")
 
     def list_files(self, extensions: str = ".parquet") -> list[str]:
         """List files in the local storage."""
@@ -67,8 +72,13 @@ class S3Dumper:
             "client_kwargs": {"endpoint_url": os.getenv("S3_ENDPOINT_URL")},
         }
 
-    def dump(self, data: list[dict], file_name: str) -> None:
+    def dump(self, data: list[dict], file_name: str, skip_exists: bool = True) -> None:
         """Dump data to S3."""
+
+        if skip_exists and file_name in self.list_files():
+            LOGGER.info(f"File {self.prefix}/{file_name} already exists. Skipping...")
+            return
+
         pd.DataFrame(data).to_parquet(
             f"s3://{self.bucket_name}/{self.prefix}/{file_name}",
             storage_options=self._pd_storage_options(),
