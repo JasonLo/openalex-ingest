@@ -14,4 +14,19 @@ dependencies = [
     "sickle>=0.7.0",
     "sqlalchemy>=2.0.36",
     "tenacity>=9.0.0",
+    "python-dotenv>=1.0.1",
+    "fastparquet>=2024.11.0",
+    "s3fs>=0.4.2",
+]
+
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+
+[tool.hatch.build]
+include = [
+    "openalex_ingest/**",
+    "README.md",
 ]

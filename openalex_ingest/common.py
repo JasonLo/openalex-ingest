@@ -4,11 +4,7 @@ from contextlib import contextmanager
 from urllib.parse import urlparse
 
 import sqlalchemy
-from dotenv import load_dotenv
 from sqlalchemy.orm import declarative_base, sessionmaker
-
-load_dotenv()
-S3_BUCKET = os.getenv("S3_BUCKET", "openalex-ingest")
 
 
 def _make_logger():
